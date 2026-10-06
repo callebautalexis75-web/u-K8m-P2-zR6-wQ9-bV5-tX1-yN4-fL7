@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-slate-950">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DuoSpark - Jeu de Défis pour Couple</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fff1f2',
+                            100: '#ffe4e6',
+                            200: '#fecdd3',
+                            300: '#fda4af',
+                            400: '#fb7185',
+                            500: '#f43f5e',
+                            600: '#e11d48',
+                            700: '#be123c',
+                            800: '#9f1239',
+                            900: '#881337',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        cursive: ['Great Vibes', 'cursive']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.75);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #fb7185 0%, #c084fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .card-glow {
+            box-shadow: 0 0 30px -5px rgba(244, 63, 94, 0.35);
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(244, 63, 94, 0.4);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="h-full text-slate-100 font-sans bg-slate-950 flex flex-col antialiased selection:bg-brand-500 selection:text-white">
+
+    <header class="sticky top-0 z-40 glass-panel border-b border-slate-800">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('game')">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 to-purple-600 flex items-center justify-center shadow-lg shadow-brand-500/30">
+                    <i class="fa-solid fa-heart-pulse text-white text-xl animate-pulse"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-none tracking-tight">Duo<span class="gradient-text font-cursive text-xl ml-1">Spark</span></h1>
+                    <p class="text-[10px] sm:text-xs text-slate-400">Défis & Complicité</p>
+                </div>
+            </div>
+
+            <!-- Tabs Navigation -->
+            <nav class="flex items-center gap-1 sm:gap-2 bg-slate-900/80 p-1 rounded-2xl border border-slate-800">
+                <button id="nav-game" onclick="switchTab('game')" class="nav-btn px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 flex items-center gap-2 bg-brand-600 text-white shadow-md">
+                    <i class="fa-solid fa-gamepad"></i>
+                    <span class="hidden sm:inline">Jouer</span>
+                </button>
+                <button id="nav-bank" onclick="switchTab('bank')" class="nav-btn px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium text-slate-400 hover:text-white transition-all duration-200 flex items-center gap-2">
+                    <i class="fa-solid fa-database"></i>
+                    <span class="hidden sm:inline">Banque</span>
+                    <span id="bank-count-badge" class="ml-1 bg-slate-800 text-slate-300 text-[10px] px-1.5 py-0.5 rounded-full border border-slate-700">0</span>
+                </button>
+                <button id="nav-history" onclick="switchTab('history')" class="nav-btn px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium text-slate-400 hover:text-white transition-all duration-200 flex items-center gap-2">
+                    <i class="fa-solid fa-book-bookmark"></i>
+                    <span class="hidden sm:inline">Journal</span>
+                    <span id="history-count-badge" class="ml-1 bg-slate-800 text-slate-300 text-[10px] px-1.5 py-0.5 rounded-full border border-slate-700">0</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 md:p-8 flex flex-col justify-start">
+
+        <!-- TAB 1: GAMEPLAY & VOTING -->
+        <section id="tab-game" class="tab-content flex-1 flex flex-col">
+            
+            <!-- Setup Screen -->
+            <div id="game-setup" class="my-auto max-w-xl mx-auto w-full text-center space-y-6 py-4">
+                <div class="relative inline-block">
+                    <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-tr from-brand-500/20 to-purple-500/20 border border-brand-500/30 flex items-center justify-center mx-auto mb-2">
+                        <i class="fa-solid fa-fire-flame-curved text-3xl sm:text-4xl text-brand-500"></i>
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Lancer une session de défis</h2>
+                    <p class="text-slate-400 text-xs sm:text-sm max-w-md mx-auto">
+                        Sélectionnez l'ambiance et l'intensité souhaitées pour votre moment complice.
+                    </p>
+                </div>
+
+                <!-- Player Names Config -->
+                <div class="glass-panel p-4 rounded-2xl border border-slate-800 grid grid-cols-2 gap-3 text-left">
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Joueur 1</label>
+                        <input type="text" id="p1-name" value="Toi" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs sm:text-sm focus:outline-none focus:border-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Joueur 2</label>
+                        <input type="text" id="p2-name" value="Ta Copine" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs sm:text-sm focus:outline-none focus:border-purple-500">
+                    </div>
+                </div>
+
+                <!-- FILTERS SECTION -->
+                <div class="glass-panel p-4 rounded-2xl border border-slate-800 space-y-4 text-left">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-brand-400 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders"></i>
+                        Critères de la partie
+                    </h3>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <!-- Category Filter -->
+                        <div>
+                            <label class="block text-xs text-slate-300 font-medium mb-1">Nature du défi :</label>
+                            <select id="filter-game-category" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-brand-500">
+                                <option value="ALL">✨ Toutes les catégories</option>
+                            </select>
+                        </div>
+
+                        <!-- Spiciness Filter -->
+                        <div>
+                            <label class="block text-xs text-slate-300 font-medium mb-1">Niveau de piquant :</label>
+                            <select id="filter-game-spiciness" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-brand-500">
+                                <option value="ALL">🌶️ Tous les niveaux</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Number of Cards -->
+                    <div class="flex items-center justify-between pt-2 border-t border-slate-800 text-xs">
+                        <span class="text-slate-300">Nombre de défis à proposer :</span>
+                        <div class="flex gap-2">
+                            <button onclick="setDrawCount(3)" id="btn-draw-3" class="px-3 py-1 rounded-lg border text-xs font-semibold bg-brand-600 border-brand-500 text-white">3 Cartes</button>
+                            <button onclick="setDrawCount(4)" id="btn-draw-4" class="px-3 py-1 rounded-lg border text-xs font-semibold bg-slate-800 border-slate-700 text-slate-400">4 Cartes</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Launch Draw -->
+                <button onclick="startDrawSession()" class="w-full py-3.5 bg-gradient-to-r from-brand-600 via-brand-500 to-purple-600 hover:from-brand-500 hover:to-purple-500 text-white font-bold rounded-2xl shadow-lg shadow-brand-500/25 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2 text-base">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    Tirer les défis au sort
+                </button>
+            </div>
+
+            <div id="game-arena" class="hidden flex-1 flex flex-col space-y-5">
+                <div class="glass-panel p-3.5 rounded-2xl border border-slate-800 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-brand-500 animate-ping"></span>
+                        <span class="text-xs font-semibold text-brand-300">Vote secret en cours</span>
+                    </div>
+                    <button onclick="cancelSession()" class="text-xs text-slate-400 hover:text-rose-400 transition-colors">
+                        <i class="fa-solid fa-xmark"></i> Annuler
+                    </button>
+                </div>
+
+                <!-- Switch Active Player -->
+                <div class="grid grid-cols-2 gap-3 p-1.5 bg-slate-900 rounded-2xl border border-slate-800">
+                    <button id="tab-p1-vote" onclick="setCurrentVoter(1)" class="py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 font-semibold text-xs sm:text-sm transition-all bg-brand-600 text-white shadow">
+                        <i class="fa-solid fa-user"></i>
+                        <span id="label-p1">Joueur 1</span>
+                        <span id="badge-p1-status" class="w-2 h-2 rounded-full bg-amber-400"></span>
+                    </button>
+                    <button id="tab-p2-vote" onclick="setCurrentVoter(2)" class="py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 font-semibold text-xs sm:text-sm transition-all text-slate-400 hover:text-white">
+                        <i class="fa-solid fa-heart"></i>
+                        <span id="label-p2">Joueur 2</span>
+                        <span id="badge-p2-status" class="w-2 h-2 rounded-full bg-amber-400"></span>
+                    </button>
+                </div>
+
+                <div class="text-center text-xs text-slate-400">
+                    C'est au tour de <span id="voter-turn-name" class="font-bold text-brand-400">...</span> de donner son avis secret.
+                </div>
+
+                <!-- Drawn Cards Grid -->
+                <div id="drawn-cards-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1"></div>
+
+                <!-- Reveal Button -->
+                <button id="btn-reveal-results" onclick="revealAndEvaluate()" disabled class="w-full py-3.5 bg-slate-800 text-slate-500 font-bold rounded-2xl transition-all flex items-center justify-center gap-2 cursor-not-allowed border border-slate-700/50">
+                    <i class="fa-solid fa-lock"></i>
+                    <span>En attente du vote des 2 joueurs...</span>
+                </button>
+            </div>
+
+            <div id="game-results" class="hidden flex-1 flex flex-col items-center justify-center space-y-6 py-4">
+                <div id="match-header-box" class="text-center space-y-2"></div>
+
+                <div id="match-card-display" class="w-full max-w-xl glass-panel p-6 sm:p-8 rounded-3xl border border-brand-500/40 card-glow text-center space-y-5 relative overflow-hidden">
+                    <span id="match-category-tag" class="inline-block px-3 py-1 bg-brand-500/15 border border-brand-500/30 text-brand-300 font-semibold text-xs rounded-full uppercase tracking-wider">
+                        Défi Retenu
+                    </span>
+
+                    <h3 id="match-title" class="text-2xl sm:text-3xl font-extrabold text-white">---</h3>
+                    <p id="match-desc" class="text-slate-300 text-sm sm:text-base leading-relaxed">---</p>
+
+                    <div class="pt-4 border-t border-slate-800/80 flex items-center justify-center gap-6 text-xs text-slate-400">
+                        <div id="p1-choice-summary">---</div>
+                        <div class="h-4 w-px bg-slate-800"></div>
+                        <div id="p2-choice-summary">---</div>
+                    </div>
+                </div>
+
+                <div class="w-full max-w-xl flex flex-col sm:flex-row gap-3">
+                    <button onclick="acceptAndCompleteChallenge()" class="flex-1 py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-circle-check"></i>
+                        Relever le défi & Terminer !
+                    </button>
+                    <button onclick="startDrawSession()" class="px-5 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-2xl border border-slate-700 transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-rotate-right"></i>
+                        Autre tirage
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section id="tab-bank" class="tab-content hidden flex-1 flex flex-col space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-xl sm:text-2xl font-bold">Banque & Personnalisation</h2>
+                    <p class="text-slate-400 text-xs sm:text-sm">Gérez la banque de défis, ajoutez des catégories et ajustez les niveaux de piquant.</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="openManageAdminModal()" class="py-2.5 px-3.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl text-xs sm:text-sm border border-slate-700 transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-gear text-brand-400"></i>
+                        Gérer Catégories / Piquants
+                    </button>
+                    <button onclick="openAddModal()" class="py-2.5 px-4 bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-xl text-xs sm:text-sm transition-all flex items-center gap-2 shadow-md">
+                        <i class="fa-solid fa-plus"></i>
+                        Nouveau Défi
+                    </button>
+                </div>
+            </div>
+
+            <!-- Category Pills Filter -->
+            <div id="bank-category-pills" class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none text-xs sm:text-sm"></div>
+
+            <!-- Challenges Grid -->
+            <div id="bank-list-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 flex-1"></div>
+        </section>
+
+        <section id="tab-history" class="tab-content hidden flex-1 flex flex-col space-y-6">
+            <div>
+                <h2 class="text-xl sm:text-2xl font-bold">Journal des Souvenirs</h2>
+                <p class="text-slate-400 text-xs sm:text-sm">Historique de tous les défis accomplis ensemble.</p>
+            </div>
+
+            <div id="history-list-container" class="space-y-4 flex-1"></div>
+        </section>
+
+    </main>
+
+    <!-- MODAL: ADD CUSTOM CHALLENGE -->
+    <div id="modal-add" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-lg rounded-3xl border border-slate-800 p-6 space-y-5 relative">
+            <button onclick="closeAddModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            
+            <div class="space-y-1">
+                <h3 class="text-xl font-bold text-white">Ajouter un nouveau défi</h3>
+                <p class="text-xs text-slate-400">Enrichissez votre banque de jeu avec vos propres idées !</p>
+            </div>
+
+            <form id="form-add-challenge" onsubmit="handleSaveCustomChallenge(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Titre du défi</label>
+                    <input type="text" id="input-title" required placeholder="ex: Soirée cocktail mystère" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Catégorie</label>
+                        <select id="input-category" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-200 focus:outline-none focus:border-brand-500"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Intensité / Piquant</label>
+                        <select id="input-spiciness" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-200 focus:outline-none focus:border-brand-500"></select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Description / Règles</label>
+                    <textarea id="input-desc" rows="3" required placeholder="Expliquez en détails les règles de ce défi..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand-500"></textarea>
+                </div>
+
+                <div class="pt-2 flex gap-3">
+                    <button type="button" onclick="closeAddModal()" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold rounded-xl">Annuler</button>
+                    <button type="submit" class="flex-1 py-2.5 bg-brand-600 hover:bg-brand-500 text-white text-sm font-semibold rounded-xl shadow-md">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: ADMIN CATEGORIES AND SPICINESS -->
+    <div id="modal-admin" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-lg rounded-3xl border border-slate-800 p-6 space-y-5 relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeManageAdminModal()" class="absolute top-5 right-5 text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            
+            <div class="space-y-1">
+                <h3 class="text-xl font-bold text-white">Gestion des Catégories & Piquants</h3>
+                <p class="text-xs text-slate-400">Ajoutez de nouvelles catégories ou adaptez les niveaux d'intensité.</p>
+            </div>
+
+            <!-- Add Category Section -->
+            <div class="p-4 bg-slate-900/80 rounded-2xl border border-slate-800 space-y-3">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-brand-400">Ajouter une Catégorie</h4>
+                <div class="flex gap-2">
+                    <input type="text" id="input-new-cat" placeholder="ex: 🎨 Créatif & Art" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-brand-500">
+                    <button onclick="handleAddCategory()" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-xl text-xs">Ajouter</button>
+                </div>
+                <div id="admin-categories-list" class="flex flex-wrap gap-1.5 pt-2"></div>
+            </div>
+
+            <!-- Add Spiciness Level Section -->
+            <div class="p-4 bg-slate-900/80 rounded-2xl border border-slate-800 space-y-3">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-purple-400">Ajouter un Niveau de Piquant</h4>
+                <div class="flex gap-2">
+                    <input type="text" id="input-new-spice" placeholder="ex: ⚡ Extrême" class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-purple-500">
+                    <button onclick="handleAddSpiciness()" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-xl text-xs">Ajouter</button>
+                </div>
+                <div id="admin-spiciness-list" class="flex flex-wrap gap-1.5 pt-2"></div>
+            </div>
+
+            <button onclick="closeManageAdminModal()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold rounded-xl">Fermer</button>
+        </div>
+    </div>
+
+    <!-- MODAL: RATE & REVIEW -->
+    <div id="modal-rate" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-lg rounded-3xl border border-slate-800 p-6 space-y-5 relative">
+            <div class="space-y-1">
+                <h3 class="text-xl font-bold text-white">Défi Réalisé ! 🎉</h3>
+                <p class="text-xs text-slate-400">Laissez une note et un petit souvenir de ce moment.</p>
+            </div>
+
+            <div class="p-4 bg-slate-900/80 rounded-2xl border border-slate-800">
+                <h4 id="rate-modal-title" class="font-bold text-brand-400 text-base">---</h4>
+                <p id="rate-modal-desc" class="text-xs text-slate-300 mt-1">---</p>
+            </div>
+
+            <form id="form-rate-challenge" onsubmit="handleSaveRating(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-400 mb-2 text-center">Votre Note Globale</label>
+                    <div class="flex items-center justify-center gap-2 text-2xl text-amber-400" id="star-rating-selector">
+                        <i class="fa-solid fa-star cursor-pointer hover:scale-125 transition-transform" data-star="1" onclick="setRatingValue(1)"></i>
+                        <i class="fa-solid fa-star cursor-pointer hover:scale-125 transition-transform" data-star="2" onclick="setRatingValue(2)"></i>
+                        <i class="fa-solid fa-star cursor-pointer hover:scale-125 transition-transform" data-star="3" onclick="setRatingValue(3)"></i>
+                        <i class="fa-solid fa-star cursor-pointer hover:scale-125 transition-transform" data-star="4" onclick="setRatingValue(4)"></i>
+                        <i class="fa-solid fa-star cursor-pointer hover:scale-125 transition-transform" data-star="5" onclick="setRatingValue(5)"></i>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-400 mb-1">Souvenir / Anecdote (Optionnel)</label>
+                    <textarea id="input-rating-note" rows="2" placeholder="Un petit mot sur ce que vous avez préféré..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand-500"></textarea>
+                </div>
+
+                <div class="p-3 bg-slate-900/50 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
+                    <span class="text-slate-300 font-medium">Conserver dans la banque de défis ?</span>
+                    <input type="checkbox" id="input-keep-in-bank" checked class="w-4 h-4 accent-brand-500 rounded cursor-pointer">
+                </div>
+
+                <button type="submit" class="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-bold rounded-xl shadow-md">
+                    Enregistrer dans le Journal
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast-msg" class="fixed bottom-6 right-6 z-50 glass-panel border border-brand-500/50 text-white text-xs sm:text-sm px-4 py-3 rounded-2xl shadow-xl transform translate-y-20 opacity-0 transition-all duration-300 flex items-center gap-3">
+        <i class="fa-solid fa-circle-check text-brand-400 text-base"></i>
+        <span id="toast-text">Notification</span>
+    </div>
+
+    <script>
+        // DEFAULT DATA INITIALIZATION
+        const DEFAULT_CATEGORIES = ["❤️ Romantique", "🎉 Fun & Complice", "🔥 Séduction & Flirt", "🚀 Aventure & Sortie", "🛋️ Cocooning"];
+        const DEFAULT_SPICINESS = ["🌱 Doux", "🌶️🌶️ Épicé", "🔥 Caliente"];
+
+        const DEFAULT_CHALLENGES = [
+            { id: "def-1", title: "Dîner Dégustation à l'Aveugle", category: "🎉 Fun & Complice", spiciness: "🌶️🌶️ Épicé", description: "Un des deux prépare 3 bouchées mystères. L'autre a les yeux bandés et doit deviner ce qu'il mange !" },
+            { id: "def-2", title: "Massage Relaxant 15 min", category: "🛋️️ Cocooning", spiciness: "🌱 Doux", description: "Bougies, huile et musique douce. Un massage sans interruption pendant 15 minutes." },
+            { id: "def-3", title: "Soirée Cocktail Signature & Duel Musical", category: "🎉 Fun & Complice", spiciness: "🌶️🌶️ Épicé", description: "Créez un cocktail sur-mesure pour l'autre, puis chantez chacun votre chanson fétiche." },
+            { id: "def-4", title: "Lettre Sécrète Cachée", category: "❤️ Romantique", spiciness: "🌱 Doux", description: "Écrivez un mot doux ou un souvenir cher à votre cœur sur un papier et cachez-le dans la maison." },
+            { id: "def-5", title: "Bain Chaud & Lumière Tamisée", category: "❤️ Romantique", spiciness: "🔥 Caliente", description: "Préparez un bain chaud avec de la mousse, zéro téléphone et verre à la main." },
+            { id: "def-6", title: "Jeu des 10 Questions Audacieuses", category: "🔥 Séduction & Flirt", spiciness: "🔥 Caliente", description: "Posez-vous à tour de rôle 5 questions sincères ou osées auxquelles il faut répondre sans détour." },
+            { id: "def-7", title: "Balade Nocturne sous les Étoiles", category: "🚀 Aventure & Sortie", spiciness: "🌱 Doux", description: "Sortez marcher 20 minutes dehors tard le soir, main dans la main, pour discuter du futur." }
+        ];
+
+        // GLOBAL APPLICATION STATE
+        let categoriesList = [];
+        let spicinessList = [];
+        let challengesBank = [];
+        let completedChallenges = [];
+
+        let activeBankCategoryFilter = 'ALL';
+        let drawCount = 3;
+
+        // Session State
+        let currentDraw = [];
+        let p1Votes = {};
+        let p2Votes = {};
+        let activeVoter = 1;
+        let winningChallenge = null;
+        let selectedForRating = null;
+        let currentRatingVal = 5;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadAllData();
+            refreshFilterDropdowns();
+            renderBankCategoryPills();
+            renderBankList();
+            renderHistoryList();
+            updateBadges();
+        });
+
+        function loadAllData() {
+            categoriesList = JSON.parse(localStorage.getItem('duo_categories')) || [...DEFAULT_CATEGORIES];
+            spicinessList = JSON.parse(localStorage.getItem('duo_spiciness')) || [...DEFAULT_SPICINESS];
+            challengesBank = JSON.parse(localStorage.getItem('duo_bank')) || [...DEFAULT_CHALLENGES];
+            completedChallenges = JSON.parse(localStorage.getItem('duo_history')) || [];
+        }
+
+        function saveData() {
+            localStorage.setItem('duo_categories', JSON.stringify(categoriesList));
+            localStorage.setItem('duo_spiciness', JSON.stringify(spicinessList));
+            localStorage.setItem('duo_bank', JSON.stringify(challengesBank));
+            localStorage.setItem('duo_history', JSON.stringify(completedChallenges));
+            updateBadges();
+        }
+
+        function updateBadges() {
+            document.getElementById('bank-count-badge').textContent = challengesBank.length;
+            document.getElementById('history-count-badge').textContent = completedChallenges.length;
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-brand-600', 'text-white', 'shadow-md');
+                btn.classList.add('text-slate-400');
+            });
+
+            document.getElementById(`tab-${tabName}`)?.classList.remove('hidden');
+            const navBtn = document.getElementById(`nav-${tabName}`);
+            if (navBtn) {
+                navBtn.classList.add('bg-brand-600', 'text-white', 'shadow-md');
+                navBtn.classList.remove('text-slate-400');
+            }
+
+            if (tabName === 'bank') {
+                renderBankCategoryPills();
+                renderBankList();
+            }
+            if (tabName === 'history') renderHistoryList();
+        }
+
+        function refreshFilterDropdowns() {
+            // Game filter categories
+            const gameCatSelect = document.getElementById('filter-game-category');
+            gameCatSelect.innerHTML = `<option value="ALL">✨ Toutes les catégories</option>` +
+                categoriesList.map(c => `<option value="${c}">${c}</option>`).join('');
+
+            // Game filter spiciness
+            const gameSpiceSelect = document.getElementById('filter-game-spiciness');
+            gameSpiceSelect.innerHTML = `<option value="ALL">🌶️ Tous les niveaux</option>` +
+                spicinessList.map(s => `<option value="${s}">${s}</option>`).join('');
+
+            // Modal add challenge categories
+            const addCatSelect = document.getElementById('input-category');
+            addCatSelect.innerHTML = categoriesList.map(c => `<option value="${c}">${c}</option>`).join('');
+
+            // Modal add challenge spiciness
+            const addSpiceSelect = document.getElementById('input-spiciness');
+            addSpiceSelect.innerHTML = spicinessList.map(s => `<option value="${s}">${s}</option>`).join('');
+        }
+
+        function setDrawCount(count) {
+            drawCount = count;
+            document.getElementById('btn-draw-3').className = count === 3 ? "px-3 py-1 rounded-lg border text-xs font-semibold bg-brand-600 border-brand-500 text-white" : "px-3 py-1 rounded-lg border text-xs font-semibold bg-slate-800 border-slate-700 text-slate-400";
+            document.getElementById('btn-draw-4').className = count === 4 ? "px-3 py-1 rounded-lg border text-xs font-semibold bg-brand-600 border-brand-500 text-white" : "px-3 py-1 rounded-lg border text-xs font-semibold bg-slate-800 border-slate-700 text-slate-400";
+        }
+
+        function startDrawSession() {
+            const selectedCat = document.getElementById('filter-game-category').value;
+            const selectedSpice = document.getElementById('filter-game-spiciness').value;
+
+            let pool = [...challengesBank];
+            if (selectedCat !== 'ALL') pool = pool.filter(c => c.category === selectedCat);
+            if (selectedSpice !== 'ALL') pool = pool.filter(c => c.spiciness === selectedSpice);
+
+            if (pool.length < 1) {
+                showToast("Aucun défi ne correspond à ces critères !");
+                return;
+            }
+
+            const shuffled = [...pool].sort(() => 0.5 - Math.random());
+            currentDraw = shuffled.slice(0, Math.min(drawCount, shuffled.length));
+
+            p1Votes = {};
+            p2Votes = {};
+            activeVoter = 1;
+
+            document.getElementById('game-setup').classList.add('hidden');
+            document.getElementById('game-results').classList.add('hidden');
+            document.getElementById('game-arena').classList.remove('hidden');
+
+            const p1Name = document.getElementById('p1-name').value.trim() || "Joueur 1";
+            const p2Name = document.getElementById('p2-name').value.trim() || "Joueur 2";
+            document.getElementById('label-p1').textContent = p1Name;
+            document.getElementById('label-p2').textContent = p2Name;
+
+            setCurrentVoter(1);
+            renderDrawnCards();
+            updateVoteProgressUI();
+        }
+
+        function cancelSession() {
+            document.getElementById('game-arena').classList.add('hidden');
+            document.getElementById('game-results').classList.add('hidden');
+            document.getElementById('game-setup').classList.remove('hidden');
+        }
+
+        function setCurrentVoter(pNum) {
+            activeVoter = pNum;
+            const p1Name = document.getElementById('p1-name').value.trim() || "Joueur 1";
+            const p2Name = document.getElementById('p2-name').value.trim() || "Joueur 2";
+
+            const tab1 = document.getElementById('tab-p1-vote');
+            const tab2 = document.getElementById('tab-p2-vote');
+
+            if (pNum === 1) {
+                tab1.className = "py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 font-semibold text-xs sm:text-sm transition-all bg-brand-600 text-white shadow";
+                tab2.className = "py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 font-semibold text-xs sm:text-sm transition-all text-slate-400 hover:text-white";
+                document.getElementById('voter-turn-name').textContent = p1Name;
+                document.getElementById('voter-turn-name').className = "font-bold text-brand-400";
+            } else {
+                tab2.className = "py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 font-semibold text-xs sm:text-sm transition-all bg-purple-600 text-white shadow";
+                tab1.className = "py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 font-semibold text-xs sm:text-sm transition-all text-slate-400 hover:text-white";
+                document.getElementById('voter-turn-name').textContent = p2Name;
+                document.getElementById('voter-turn-name').className = "font-bold text-purple-400";
+            }
+
+            renderDrawnCards();
+        }
+
+        function renderDrawnCards() {
+            const container = document.getElementById('drawn-cards-container');
+            container.innerHTML = '';
+
+            const currentVotesObj = activeVoter === 1 ? p1Votes : p2Votes;
+
+            currentDraw.forEach(item => {
+                const userVote = currentVotesObj[item.id] || null;
+
+                const card = document.createElement('div');
+                card.className = "glass-panel p-4 rounded-2xl border border-slate-800 flex flex-col justify-between space-y-3";
+
+                card.innerHTML = `
+                    <div class="space-y-1.5">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-medium border border-slate-700">${item.category}</span>
+                            <span class="text-slate-400 text-[11px]">${item.spiciness}</span>
+                        </div>
+                        <h3 class="font-bold text-base text-white">${item.title}</h3>
+                        <p class="text-xs text-slate-300 leading-relaxed">${item.description}</p>
+                    </div>
+
+                    <div class="pt-2 border-t border-slate-800">
+                        <div class="grid grid-cols-3 gap-2">
+                            <button onclick="castVote('${item.id}', 'yes')" class="py-2 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1 transition-all ${userVote === 'yes' ? 'bg-emerald-600 border-emerald-500 text-white shadow' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-emerald-400'}">
+                                <i class="fa-solid fa-heart"></i> Oui
+                            </button>
+                            <button onclick="castVote('${item.id}', 'curious')" class="py-2 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1 transition-all ${userVote === 'curious' ? 'bg-amber-500 border-amber-400 text-slate-950 font-bold shadow' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-amber-400'}">
+                                <i class="fa-solid fa-star"></i> Curieux
+                            </button>
+                            <button onclick="castVote('${item.id}', 'no')" class="py-2 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1 transition-all ${userVote === 'no' ? 'bg-rose-600 border-rose-500 text-white shadow' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-rose-400'}">
+                                <i class="fa-solid fa-xmark"></i> Non
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function castVote(cId, opt) {
+            if (activeVoter === 1) p1Votes[cId] = opt;
+            else p2Votes[cId] = opt;
+
+            renderDrawnCards();
+            updateVoteProgressUI();
+        }
+
+        function updateVoteProgressUI() {
+            const p1Done = Object.keys(p1Votes).length === currentDraw.length;
+            const p2Done = Object.keys(p2Votes).length === currentDraw.length;
+
+            document.getElementById('badge-p1-status').className = p1Done ? "w-2.5 h-2.5 rounded-full bg-emerald-400" : "w-2 h-2 rounded-full bg-amber-400 animate-pulse";
+            document.getElementById('badge-p2-status').className = p2Done ? "w-2.5 h-2.5 rounded-full bg-emerald-400" : "w-2 h-2 rounded-full bg-amber-400 animate-pulse";
+
+            const btnReveal = document.getElementById('btn-reveal-results');
+            if (p1Done && p2Done) {
+                btnReveal.disabled = false;
+                btnReveal.className = "w-full py-3.5 bg-gradient-to-r from-brand-600 via-purple-600 to-brand-500 hover:from-brand-500 hover:to-purple-500 text-white font-extrabold rounded-2xl shadow-xl transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2 cursor-pointer text-base animate-bounce";
+                btnReveal.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> <span>Voir le défi gagnant !</span>`;
+            } else {
+                btnReveal.disabled = true;
+                btnReveal.className = "w-full py-3.5 bg-slate-800/80 text-slate-500 font-bold rounded-2xl transition-all flex items-center justify-center gap-2 cursor-not-allowed border border-slate-800";
+                btnReveal.innerHTML = `<i class="fa-solid fa-lock"></i> <span>En attente des votes...</span>`;
+            }
+        }
+
+        function revealAndEvaluate() {
+            let scored = currentDraw.map(item => {
+                const v1 = p1Votes[item.id];
+                const v2 = p2Votes[item.id];
+                let score = 0;
+
+                if (v1 === 'no' || v2 === 'no') score = -10;
+                else if (v1 === 'yes' && v2 === 'yes') score = 10;
+                else if ((v1 === 'yes' && v2 === 'curious') || (v1 === 'curious' && v2 === 'yes')) score = 7;
+                else if (v1 === 'curious' && v2 === 'curious') score = 5;
+
+                return { item, v1, v2, score };
+            });
+
+            scored.sort((a, b) => b.score - a.score);
+            const topMatch = scored[0];
+
+            document.getElementById('game-arena').classList.add('hidden');
+            document.getElementById('game-results').classList.remove('hidden');
+
+            const headerBox = document.getElementById('match-header-box');
+            if (topMatch.score > 0) {
+                confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+                headerBox.innerHTML = `
+                    <div class="inline-block p-2.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 mb-1">
+                        <i class="fa-solid fa-heart-circle-check text-2xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-extrabold text-white">Défi Retenu ! 💕</h2>
+                    <p class="text-xs text-slate-400">Vous êtes tombés d'accord sur cette idée.</p>
+                `;
+            } else {
+                headerBox.innerHTML = `
+                    <div class="inline-block p-2.5 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 mb-1">
+                        <i class="fa-solid fa-face-frown-open text-2xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-extrabold text-white">Aucun accord parfait !</h2>
+                    <p class="text-xs text-slate-400">Voici le défi le plus proche ou relancez un tirage.</p>
+                `;
+            }
+
+            winningChallenge = topMatch.item;
+
+            document.getElementById('match-title').textContent = topMatch.item.title;
+            document.getElementById('match-desc').textContent = topMatch.item.description;
+            document.getElementById('match-category-tag').textContent = `${topMatch.item.category} • ${topMatch.item.spiciness}`;
+
+            const p1Name = document.getElementById('p1-name').value.trim() || "Joueur 1";
+            const p2Name = document.getElementById('p2-name').value.trim() || "Joueur 2";
+
+            document.getElementById('p1-choice-summary').innerHTML = `<span class="font-bold text-slate-300">${p1Name}:</span> ${getVoteBadge(topMatch.v1)}`;
+            document.getElementById('p2-choice-summary').innerHTML = `<span class="font-bold text-slate-300">${p2Name}:</span> ${getVoteBadge(topMatch.v2)}`;
+        }
+
+        function getVoteBadge(vote) {
+            if (vote === 'yes') return `<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-semibold">Oui ❤️</span>`;
+            if (vote === 'curious') return `<span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 font-semibold">Curieux ⭐</span>`;
+            return `<span class="px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 font-semibold">Non ❌</span>`;
+        }
+
+        function acceptAndCompleteChallenge() {
+            if (!winningChallenge) return;
+            selectedForRating = winningChallenge;
+
+            document.getElementById('rate-modal-title').textContent = selectedForRating.title;
+            document.getElementById('rate-modal-desc').textContent = selectedForRating.description;
+            document.getElementById('input-rating-note').value = '';
+            setRatingValue(5);
+
+            document.getElementById('modal-rate').classList.remove('hidden');
+        }
+
+        function setRatingValue(val) {
+            currentRatingVal = val;
+            const stars = document.querySelectorAll('#star-rating-selector i');
+            stars.forEach((s, idx) => {
+                s.className = idx < val 
+                    ? "fa-solid fa-star cursor-pointer hover:scale-125 transition-transform text-amber-400" 
+                    : "fa-regular fa-star cursor-pointer hover:scale-125 transition-transform text-slate-600";
+            });
+        }
+
+        function handleSaveRating(e) {
+            e.preventDefault();
+            if (!selectedForRating) return;
+
+            const noteText = document.getElementById('input-rating-note').value.trim();
+            const keepInBank = document.getElementById('input-keep-in-bank').checked;
+
+            completedChallenges.unshift({
+                id: "comp-" + Date.now(),
+                title: selectedForRating.title,
+                category: selectedForRating.category,
+                description: selectedForRating.description,
+                rating: currentRatingVal,
+                note: noteText,
+                completedAt: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+            });
+
+            if (!keepInBank) {
+                challengesBank = challengesBank.filter(c => c.id !== selectedForRating.id);
+            }
+
+            saveData();
+            document.getElementById('modal-rate').classList.add('hidden');
+            showToast("Défi enregistré dans votre journal ! 🎉");
+
+            cancelSession();
+            switchTab('history');
+        }
+
+        function renderBankCategoryPills() {
+            const container = document.getElementById('bank-category-pills');
+            container.innerHTML = `
+                <button onclick="filterBankCategory('ALL')" class="px-3 py-1.5 rounded-xl border font-medium whitespace-nowrap ${activeBankCategoryFilter === 'ALL' ? 'bg-brand-600 border-brand-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'}">
+                    Tous (${challengesBank.length})
+                </button>
+            ` + categoriesList.map(cat => {
+                const count = challengesBank.filter(c => c.category === cat).length;
+                return `
+                    <button onclick="filterBankCategory('${cat}')" class="px-3 py-1.5 rounded-xl border font-medium whitespace-nowrap ${activeBankCategoryFilter === cat ? 'bg-brand-600 border-brand-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'}">
+                        ${cat} (${count})
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function filterBankCategory(cat) {
+            activeBankCategoryFilter = cat;
+            renderBankCategoryPills();
+            renderBankList();
+        }
+
+        function renderBankList() {
+            const container = document.getElementById('bank-list-container');
+            container.innerHTML = '';
+
+            const filtered = activeBankCategoryFilter === 'ALL' 
+                ? challengesBank 
+                : challengesBank.filter(c => c.category === activeBankCategoryFilter);
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="col-span-full py-10 text-center text-slate-500 text-sm">Aucun défi trouvé dans cette catégorie.</div>`;
+                return;
+            }
+
+            filtered.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "glass-panel p-4 rounded-2xl border border-slate-800 flex flex-col justify-between space-y-3";
+                card.innerHTML = `
+                    <div class="space-y-1.5">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-medium border border-slate-700">${item.category}</span>
+                            <span class="text-slate-400 text-[11px]">${item.spiciness}</span>
+                        </div>
+                        <h4 class="font-bold text-sm text-white">${item.title}</h4>
+                        <p class="text-xs text-slate-300 leading-relaxed">${item.description}</p>
+                    </div>
+                    <div class="pt-2 border-t border-slate-800 flex justify-end">
+                        <button onclick="deleteChallenge('${item.id}')" title="Supprimer" class="text-slate-500 hover:text-rose-400 text-xs p-1">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function openManageAdminModal() {
+            renderAdminLists();
+            document.getElementById('modal-admin').classList.remove('hidden');
+        }
+
+        function closeManageAdminModal() {
+            document.getElementById('modal-admin').classList.add('hidden');
+        }
+
+        function renderAdminLists() {
+            const catContainer = document.getElementById('admin-categories-list');
+            catContainer.innerHTML = categoriesList.map((cat, idx) => `
+                <span class="px-2.5 py-1 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 flex items-center gap-1.5">
+                    ${cat}
+                    <i class="fa-solid fa-xmark text-slate-500 hover:text-rose-400 cursor-pointer" onclick="removeCategory(${idx})"></i>
+                </span>
+            `).join('');
+
+            const spiceContainer = document.getElementById('admin-spiciness-list');
+            spiceContainer.innerHTML = spicinessList.map((sp, idx) => `
+                <span class="px-2.5 py-1 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 flex items-center gap-1.5">
+                    ${sp}
+                    <i class="fa-solid fa-xmark text-slate-500 hover:text-rose-400 cursor-pointer" onclick="removeSpiciness(${idx})"></i>
+                </span>
+            `).join('');
+        }
+
+        function handleAddCategory() {
+            const val = document.getElementById('input-new-cat').value.trim();
+            if (val && !categoriesList.includes(val)) {
+                categoriesList.push(val);
+                saveData();
+                refreshFilterDropdowns();
+                renderAdminLists();
+                renderBankCategoryPills();
+                document.getElementById('input-new-cat').value = '';
+                showToast("Nouvelle catégorie ajoutée !");
+            }
+        }
+
+        function removeCategory(index) {
+            categoriesList.splice(index, 1);
+            saveData();
+            refreshFilterDropdowns();
+            renderAdminLists();
+            renderBankCategoryPills();
+        }
+
+        function handleAddSpiciness() {
+            const val = document.getElementById('input-new-spice').value.trim();
+            if (val && !spicinessList.includes(val)) {
+                spicinessList.push(val);
+                saveData();
+                refreshFilterDropdowns();
+                renderAdminLists();
+                document.getElementById('input-new-spice').value = '';
+                showToast("Nouveau niveau de piquant ajouté !");
+            }
+        }
+
+        function removeSpiciness(index) {
+            spicinessList.splice(index, 1);
+            saveData();
+            refreshFilterDropdowns();
+            renderAdminLists();
+        }
+
+        function openAddModal() {
+            refreshFilterDropdowns();
+            document.getElementById('modal-add').classList.remove('hidden');
+        }
+
+        function closeAddModal() {
+            document.getElementById('modal-add').classList.add('hidden');
+        }
+
+        function handleSaveCustomChallenge(e) {
+            e.preventDefault();
+            const title = document.getElementById('input-title').value.trim();
+            const category = document.getElementById('input-category').value;
+            const spiciness = document.getElementById('input-spiciness').value;
+            const description = document.getElementById('input-desc').value.trim();
+
+            if (!title || !description) return;
+
+            challengesBank.unshift({
+                id: "custom-" + Date.now(),
+                title,
+                category,
+                spiciness,
+                description
+            });
+
+            saveData();
+            document.getElementById('form-add-challenge').reset();
+            closeAddModal();
+            renderBankCategoryPills();
+            renderBankList();
+            showToast("Nouveau défi enregistré !");
+        }
+
+        function deleteChallenge(id) {
+            challengesBank = challengesBank.filter(c => c.id !== id);
+            saveData();
+            renderBankCategoryPills();
+            renderBankList();
+            showToast("Défi supprimé.");
+        }
+
+        function renderHistoryList() {
+            const container = document.getElementById('history-list-container');
+            container.innerHTML = '';
+
+            if (completedChallenges.length === 0) {
+                container.innerHTML = `
+                    <div class="glass-panel p-8 rounded-3xl border border-slate-800 text-center space-y-2">
+                        <i class="fa-solid fa-heart-crack text-2xl text-slate-500"></i>
+                        <h3 class="font-bold text-slate-300">Aucun souvenir pour le moment</h3>
+                        <p class="text-xs text-slate-400">Jouez et accomplissez votre premier défi ensemble !</p>
+                    </div>
+                `;
+                return;
+            }
+
+            completedChallenges.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "glass-panel p-4 rounded-2xl border border-slate-800 space-y-2";
+
+                let stars = '';
+                for (let i = 1; i <= 5; i++) {
+                    stars += `<i class="fa-${i <= item.rating ? 'solid' : 'regular'} fa-star text-amber-400 text-xs"></i>`;
+                }
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <div>
+                            <span class="text-[10px] font-bold text-brand-400 uppercase tracking-wider">${item.category}</span>
+                            <h4 class="font-bold text-base text-white">${item.title}</h4>
+                        </div>
+                        <div class="text-right">
+                            <div class="flex items-center gap-0.5">${stars}</div>
+                            <span class="text-[10px] text-slate-500">${item.completedAt}</span>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-300 leading-relaxed">${item.description}</p>
+                    ${item.note ? `<p class="p-2.5 bg-slate-900/80 rounded-xl text-xs text-slate-300 italic border border-slate-800">"${item.note}"</p>` : ''}
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast-msg');
+            document.getElementById('toast-text').textContent = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
